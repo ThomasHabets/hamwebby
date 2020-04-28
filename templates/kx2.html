@@ -1,0 +1,223 @@
+<html>
+  <style>
+    html {
+    width: 100%;
+    }
+    body {
+    width: 100%;
+    }
+    #radio {
+      width: 100%;
+      border: 1px solid grey;
+    color: white;
+    background-color: #101010;
+    }
+    #radio-top {
+      width: 100%;
+      color: white;
+    }
+    #radio td {
+      text-align: center;
+    }
+    #radio table td {
+      color: white;
+    }
+    table.border td {
+      border: 1px solid #404040;
+    }
+    table.noborder td {
+      border: none;
+    }
+    top {
+      width: 100%;
+    }
+    #power,#ag,#ml,#mg,#ks {
+    width: 3em;
+    }
+    .green {
+    background-color: green;
+    }
+    .red {
+    background-color: red;
+    }
+    input {
+    text-align: right;
+    }
+    .freq-field {
+    width: 8em;
+    font-family: monospace;
+    }
+    .gain-field {
+    width: 3em;
+    font-family: monospace;
+    }
+  </style>
+  <body>
+    <div id="top">
+      <div>
+        <button onclick="register()">Register</button>
+        <button onclick="login()">Login</button>
+        <button onclick="start_streaming()">Stream</button>
+	<button id="power">Power off</button>
+      </div>
+    </div>
+    <table id="radio" class="border">
+      <tr>
+        <td colspan="10" id="title">
+          Elecraft KX2 Transceiver
+        </td>
+      </tr>
+      <tr>
+        <td colspan="10">
+	  <table id="radio-top">
+	    <tr>
+	      <td><span id="bg-text"></span><progress id="bg" max="60">[Signal]</progress></td>
+	      <td rowspan="2"><input class="freq-field" type="text" id="fa" value="[vfo-a]"/></td>
+	      <td rowspan="2" id="ds">[DS]</td>
+	      <td id="ft0">[ft0]</td>
+	      <td id="mode">[mode]</td>
+	    </tr>
+	    <tr>
+	      <td id="ft0">SWR</td>
+	    </tr>
+	    <tr>
+	      <td id="filter">filter</td>
+	      <td><input type="text" id="fb" class="freq-field" value="[vfo-b]"/></td>
+	      <td id="db">---</td>
+	      <td id="ft1">ft1</td>
+	    </tr>
+	  </table>
+        </td>
+      </tr>
+      <tr>
+	<td>
+	  <button id="vx">VOX</button>
+	</td>
+      </tr>
+      <tr>
+        <td rowspan="2" colspan="2">
+	  <table class="noborder">
+	    <tr>
+	      <td>AF Gain</td>
+              <td><input id="ag" class="gain-field" value="---"></td>
+	      <td>dB</db>
+	    </tr><tr>
+	      <td>Mon</td>
+	      <td><input id="ml" class="gain-field" value="---"></td>
+	    </tr>
+	  </table>
+          <button onclick="send('SWH32')">NB</button>
+        </td>
+        <td rowspan="2" colspan="2">
+	  <table class="noborder">
+	    <tr>
+	      <td>Mic</td>
+	      <td><input id="mg" class="gain-field" value="---"></td>
+	      <td>dB</td>
+	    </tr><tr>
+	      <td>Key speed</td>
+	      <td><input id="ks" class="gain-field" value="---"/></td>
+	      <td>WPM<br/>
+	    </tr><tr>
+              <td>Power</td>
+	      <td><input id="pc" class="gain-field" value="---"/></td>
+	      <td>W</td>
+	    </tr>
+	  </table>
+          <button onclick="send('SWT34')">Spot</button>
+        </td>
+        <td>
+          <button onclick="send('SWT26')">Data</button>
+          <button onclick="send('SWH26')">Text</button>
+        </td>
+        <td rowspan="3">Main dial</td>
+        <td>
+          Mode:
+	  <select id="md">
+	    <option value="1">LSB</option>
+	    <option value="2">USB</option>
+	    <option value="3">CW</option>
+	    <option value="4">FM</option>
+	    <option value="5">AM</option>
+	    <option value="6">DATA</option>
+	    <option value="7">CW-REV</option>
+	    <option value="9">DATA-REV</option>
+	  </select>
+          <button onclick="send('SWH08')">RCL</button>
+          <button>SCN</button>
+        </td>
+        <td rowspan="2" colspan="2">
+          Ofs [B]
+          <button>CLR</button>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <button>MSG</button>
+          <button>REC</button>
+        </td>
+        <td>
+	  Band:
+	  <select id="bn">
+	    <option value="00">160m ( 1.800- 2.000 MHz)</option>
+	    <option value="01">80m  ( 3.500- 3.800 MHz)</option>
+	    <option value="02">60m  (~5 MHz)</option>
+	    <option value="03">40m  ( 7.000- 7.200 MHz)</option>
+	    <option value="04">30m  (10.100-10.150 MHz)</option>
+	    <option value="05">20m  (14.000-14.350 MHz)</option>
+	    <option value="06">17m  (18.068-18.168 MHz)</option>
+	    <option value="07">15m  (21.000-21.450 MHz)</option>
+	    <option value="08">12m  (24.890-24.990 MHz)</option>
+	    <option value="09">10m  (28.000-29.700 MHz)</option>
+	    <!-- Not supported on KX2: <option value="10">6m (MHz)</option> -->
+	  </select>
+	  <br/>
+          <!-- <button onclick="send('SWT14')">BAND</button> -->
+          <button onclick="send('SWH14')">STORE</button>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <button id="pa-button" onclick="toggle_pa()">PRE</button>
+          <button id="att-button" onclick="toggle_att()">ATT</button>
+          <button onclick="send('SWH19')">NR</button>
+        </td>
+        <td>
+          <button onclick="send('SWT27')">FIL</button>
+          <button onclick="send('SWH27')">APF-AN</button>
+        </td>
+        <td>
+          <button onclick="send('SWT20')">ATU</button>
+          <button onclick="send('SWH20')">PFn</button>
+        </td>
+        <td>
+          <button onclick="send('SWT16')">XMIT</button>
+          <button onclick="send('SWH16')">TUNE</button>
+        </td>
+        <td>
+          <button onclick="send('SWT41')">RATE</button>
+          <button onclick="send('SWH41')">FREQ</button>
+          <button id="lk">Lock VFO A</button>
+          <button id="lkb">Lock VFO B</button>
+        </td>
+        <td>
+          <button onclick="send('SWT44')">A/B</button>
+          <button onclick="send('SWH44')">A->B</button>
+        </td>
+        <td>
+          <button onclick="send('SWT18')">RIT</button>
+          <button onclick="send('SWH18')">SPLIT</button>
+        </td>
+        <td>
+          <button onclick="send('SWT09')">DISP</button>
+          <button onclick="send('SWH09')">MENU</button>
+        </td>
+      </tr>
+    </table>
+
+    Arbitrary commands: <input type="text" id="cmd"></input>
+    <br/>
+    CW: <input type="text" id="cw"></input>
+  </body>
+  <script src="/static/kx2.js"></script>
+</html>

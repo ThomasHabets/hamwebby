@@ -1,0 +1,5 @@
+Bugs in KX2 firmware:
+
+* When switching bands the displayed VFO B is still on the old band.
+* Turning off VOX briefly makes TX mode return true
+
