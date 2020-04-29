@@ -11,8 +11,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -23,7 +23,6 @@ var (
 	speed = flag.Int("speed", 38400, "Serial port speed")
 	dev   = flag.String("dev", "/dev/ttyUSB0", "Serial port")
 
-
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -32,10 +31,44 @@ var (
 	port *Port
 )
 
-
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	t := template.Must(template.ParseFiles("templates/kx2.html"))
-	t.Execute(w, &struct{}{})
+	if err := t.Execute(w, &struct{}{}); err != nil {
+		log.Errorf("Failed to execute root handler: %v", err)
+	}
+}
+
+func audioStream(w http.ResponseWriter, r *http.Request) {
+	/*
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Errorf("Establishing audio stream websocket: %v", err)
+			return
+		}
+
+		log.Infof("Audio stream running...")
+	*/
+}
+
+func audioStreamOgg(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Connection", "Keep-Alive")
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.Header().Set("Content-Type", "audio/wav")
+
+	//cmd := exec.CommandContext(r.Context(), "rec", "-c", "1", "-b", "16", "-t","ogg","-")
+	cmd := exec.CommandContext(r.Context(), "arecord", "-D", "hw:1", "-f", "S16_LE", "-r", "44100", "-")
+	cmd.Env = []string{
+		"AUDIODEV=hw:1",
+	}
+	pipeReader, pipeWriter := io.Pipe()
+	cmd.Stdout = pipeWriter
+	cmd.Stderr = os.Stderr
+	log.Printf("Streaming audio...")
+	go io.Copy(w, pipeReader)
+	if err := cmd.Run(); err != nil {
+		log.Errorf("Failed to stream from audio dev: %v", err)
+	}
+	log.Printf("audio stream ended")
 }
 
 func uiStream(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +98,7 @@ func uiStream(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
-	defer func () {
+	defer func() {
 		close(done)
 		wg.Wait()
 		log.Infof("websocket turned off")
@@ -107,9 +140,9 @@ func command(f io.ReadWriter, cmd string, reply bool) (string, error) {
 }
 
 type Port struct {
-	m sync.Mutex
+	m    sync.Mutex
 	msgs chan []byte
-	f *os.File
+	f    *os.File
 }
 
 func (p *Port) Run(ctx context.Context) {
@@ -146,35 +179,35 @@ func main() {
 	}
 	defer f.Close()
 
-		if true {
+	if true {
 		log.Printf("Setting speed etc")
-			if err := exec.CommandContext(ctx,
-				"stty", "-F", *dev,
-				fmt.Sprint(*speed),
-				"cs8",
-				"-cstopb",
-				"-parenb",
-				"-parodd",
-				"ignbrk",
-				"-icrnl",
-				"-ixon",
-				"-ixoff",
-				"-opost",
-				"-isig",
-				"-icanon",
-				"-iexten",
-				"-echo",
-				"-echoe",
-				"-echok",
-				"-echoctl",
-				"-echoke",
-			).Run(); err != nil {
+		if err := exec.CommandContext(ctx,
+			"stty", "-F", *dev,
+			fmt.Sprint(*speed),
+			"cs8",
+			"-cstopb",
+			"-parenb",
+			"-parodd",
+			"ignbrk",
+			"-icrnl",
+			"-ixon",
+			"-ixoff",
+			"-opost",
+			"-isig",
+			"-icanon",
+			"-iexten",
+			"-echo",
+			"-echoe",
+			"-echok",
+			"-echoctl",
+			"-echoke",
+		).Run(); err != nil {
 			log.Fatalf("Setting terminal settings: %v", err)
 		}
 	}
 
 	port = &Port{
-		f: f,
+		f:    f,
 		msgs: make(chan []byte, 10),
 	}
 
@@ -198,6 +231,8 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", rootHandler)
 	r.HandleFunc("/stream/ui", uiStream)
+	r.HandleFunc("/stream/audio", audioStream)
+	r.HandleFunc("/stream/audio.ogg", audioStreamOgg)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	log.Printf("Starting...")
