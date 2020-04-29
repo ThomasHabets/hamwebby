@@ -40,6 +40,29 @@ function tq(s) {
     }
 }
 
+function update_element(el, val) {
+    let o = document.getElementById(el);
+    if (o.value == val) {
+	return;
+    }
+    if (document.activeElement == o) {
+	return;
+    }
+    o.value = val;
+}
+
+function update_text_element(el, val) {
+    let o = document.getElementById(el);
+    if (o.innerText == ("" + val).trimStart().trimEnd()) {
+	return;
+    }
+    o.innerText = val;
+}
+
+document.getElementById("audio-stream").addEventListener("click", (event) => {
+    start_audio_stream();
+});
+
 document.getElementById("power").addEventListener("click", (event) => {
     send("PS0");
 });
@@ -173,20 +196,65 @@ function send(cmd) {
 function periodic_refresh() {
     setTimeout(() => {
 	let a = [
-	    "ml",  // Monitor Level
-	    "tq",  // Transmit Query
-	    "tq",  // Transmit Query
-	    "ds",  // Display A
+	    "ML",  // Monitor Level
+	    "TQ",  // Transmit Query
+	    "DS",  // Display A
 	    "SW",  // Get SWR
-	    "DB",  // Get SWR
+	    "DB",  // Get bar
 	    "BG",  // Bar graph
 	    "VX",  // Vox status
+	    "IF",  // Display
 	];
 	a.forEach((item, index) => {
 	    send(item);
 	});
 	periodic_refresh();
-    }, 1000);
+    }, 100);
+}
+
+function att_display(v) {
+    switch (v) {
+    case 0:
+    case false:
+	document.getElementById("att-button").classList.remove("green");
+	document.getElementById("att-button").classList.add("red");
+	break;
+    case 1:
+    case true:
+	document.getElementById("att-button").classList.remove("red");
+	document.getElementById("att-button").classList.add("green");
+	break;
+    default:
+	console.log("Invalid value for RA: " + v);
+    }
+}
+
+function recolor(e, on) {
+    let o = document.getElementById(e);
+    if (on) {
+	o.classList.remove("grey");
+	o.classList.add("green");
+    } else {
+	o.classList.remove("green");
+	o.classList.add("grey");
+    }
+}
+
+function pre_display(v) {
+    switch (v) {
+    case 0:
+    case false:
+	document.getElementById("pa-button").classList.remove("green");
+	document.getElementById("pa-button").classList.add("red");
+	break;
+    case 1:
+    case true:
+	document.getElementById("pa-button").classList.remove("red");
+	document.getElementById("pa-button").classList.add("green");
+	break;
+    default:
+	console.log("Invalid value for PA: " + v);
+    }
 }
 
 function start_streaming() {
@@ -248,38 +316,122 @@ function start_streaming() {
 
 	m = s.match(/AG(\d{3})[$]?/);
 	if (m) {
-	    document.getElementById("ag").value = parseInt(m[1]);
+	    update_element("ag", parseInt(m[1]));
 	    return;
 	}
 
+	// Bar graph
 	m = s.match(/BG(\d{2})/);
 	if (m) {
-	    document.getElementById("bg").value = parseInt(m[1]);
-	    document.getElementById("bg-text").innerText = parseInt(m[1]);
+	    update_element("bg", parseInt(m[1]));
+	    update_text_element("bg-text", parseInt(m[1]));
 	    return;
 	}
 
+	// Monitor level
 	m = s.match(/ML(\d{3})[$]?/);
 	if (m) {
-	    document.getElementById("ml").value = parseInt(m[1]);
+	    update_element("ml", parseInt(m[1]));
 	    return;
 	}
 
+	// Mic gain
 	m = s.match(/MG(\d{3})[$]?/);
 	if (m) {
-	    document.getElementById("mg").value = parseInt(m[1]);
+	    update_element("mg", parseInt(m[1]));
 	    return;
 	}
 
-	m = s.match(/DS(.*)/);
+	//             disp ico flash
+	m = s.match(/DS(.{8})(.)(.)/);
 	if (m) {
-	    document.getElementById("ds").innerText = m[1];
+	    // TODO: handle icon data
+	    // Bits:
+	    //  7: Always 1
+	    //  6: NB
+	    //  5: ANT2 selected
+	    //  4: PRE
+	    //  3: ATT
+	    //  2: VFO
+	    //  1: RIT
+	    //  0: XIT
+	    let icon = m[2].charCodeAt(0);
+	    recolor("nb-enable", icon & 64);
+	    //recolor("ant2-enable", icon & 32);
+	    
+	    pre_display(!!(icon & 16));
+	    recolor("pre-enable", icon & 16);
+
+	    att_display(!!(icon & 8));
+	    recolor("att-enable", icon & 8);
+	    
+	    if (icon & 4) {
+		console.log("VFO B selected");
+	    }
+	    recolor("rit-enable", icon & 2);
+	    recolor("xit-enable", icon & 1);
+	    // TODO: handle flash data
+	    // Bits:
+	    //  7: Always 1
+	    //  6: SUB on
+	    //  5: RX ANT on
+	    //  4: ATU
+	    //  3: CWT
+	    //  2: NR
+	    //  1: NTCH
+	    //  0: MAN NOTCH
+	    let flash = m[3].charCodeAt(0);
+	    if (flash & 64) {
+		console.log("SUB on");
+	    }
+	    if (flash & 32) {
+		console.log("RX ANT on");
+	    }
+	    // ATU
+	    document.getElementById("atu").disabled = !(flash & 16);
+	    recolor("atu-enable", flash & 16);
+	    recolor("cwt-enable", flash & 8);
+	    recolor("nr-enable", flash & 4);
+	    //recolor("ntch-enable", flash & 2);
+	    //recolor("mon-notch-enable", flash & 1);
+	    
+	    let out = "";
+	    for (let i = 0; i < m[1].length; i++) {
+		let b = m[1].charCodeAt(i);
+		if (b & 128) {
+		    out += ".";
+		    b &= 127;
+		}
+		let b2 = {
+		    '>': '-',
+		    '<': 'l',
+		    '@': ' ',
+		    'K': 'H',
+		    'M': 'N',
+		    'Q': 'O',
+		    'V': 'U',
+		    'W': 'I',
+		    'X': '?', // c-bar
+		    'Z': 'c',
+		    '[': '?', // r-bar
+		    '\\': '?', // lambda
+		    ']': '?', // RX/TX eq level 4
+		    '^': '?', // RX/TX eq level 4
+		}[String.fromCharCode(b)]
+		if (b2 !== undefined) {
+		    b = b2.charCodeAt(0);
+		}
+		if (b > 0) {
+		    out += String.fromCharCode(b);
+		}
+	    }
+	    update_text_element("ds", out);
 	    return;
 	}
 
 	m = s.match(/MD(\d)[$]?/);
 	if (m) {
-	    document.getElementById("mode").innerText = modemap[m[1]];
+	    update_text_element("mode", modemap[m[1]]);
 	    document.querySelector('#md [value="' + m[1] + '"]').selected = true;
 	    return;
 	}
@@ -292,25 +444,25 @@ function start_streaming() {
 
 	m = s.match(/DB(.*)/);
 	if (m) {
-	    document.getElementById("db").innerText = m[1];
+	    update_text_element("db", m[1]);
 	    return;
 	}
 
 	m = s.match(/FA(\d{11})/);
 	if (m) {
-	    document.getElementById("fa").value = format_frequency(m[1]);
+	    update_element("fa", format_frequency(m[1]));
 	    return;
 	}
 
 	m = s.match(/FB(\d{11})/);
 	if (m) {
-	    document.getElementById("fb").value = format_frequency(m[1]);
+	    update_element("fb", format_frequency(m[1]));
 	    return;
 	}
 
 	m = s.match(/PC(\d{2})(\d)(\d)/);
 	if (m) {
-	    document.getElementById("pc").value = parseInt(m[1]) + "." + m[2];
+	    update_element("pc", parseInt(m[1]) + "." + m[2]);
 	    // TODO: PA status m[3]
 	    return;
 	}
@@ -318,11 +470,11 @@ function start_streaming() {
 	m = s.match(/FT(\d)/);
 	if (m) {
 	    if (m[1] == "0") {
-		document.getElementById("ft0").innerText = "x";
-		document.getElementById("ft1").innerText = "";
+		update_text_element("ft0", "x");
+		update_text_element("ft1", "");
 	    } else {
-		document.getElementById("ft0").innerText = "";
-		document.getElementById("ft1").innerText = "x";
+		update_text_element("ft0", "");
+		update_text_element("ft1", "x");
 	    }
 	    return;
 	}
@@ -356,25 +508,14 @@ function start_streaming() {
 
 	m = s.match(/KS(\d+)/);
 	if (m) {
-	    document.getElementById("ks").value = parseInt(m[1]);
+	    update_element("ks", parseInt(m[1]));
 	    return;
 	}
 
 	m = s.match(/PA(\d)/);
 	if (m) {
 	    let v = parseInt(m[1]);
-	    switch (v) {
-	    case 0:
-		document.getElementById("pa-button").classList.remove("green");
-		document.getElementById("pa-button").classList.add("red");
-		break;
-	    case 1:
-		document.getElementById("pa-button").classList.remove("red");
-		document.getElementById("pa-button").classList.add("green");
-		break;
-	    default:
-		console.log("Invalid value for PA: " + m[1]);
-	    }
+	    pre_display(v);
 	    if (do_toggle_pa) {
 		send("PA" + (v ? 0 : 1));
 		do_toggle_pa = false;
@@ -385,18 +526,7 @@ function start_streaming() {
 	m = s.match(/RA0(\d)/);
 	if (m) {
 	    let v = parseInt(m[1]);
-	    switch (v) {
-	    case 0:
-		document.getElementById("att-button").classList.remove("green");
-		document.getElementById("att-button").classList.add("red");
-		break;
-	    case 1:
-		document.getElementById("att-button").classList.remove("red");
-		document.getElementById("att-button").classList.add("green");
-		break;
-	    default:
-		console.log("Invalid value for RA: " + m[1]);
-	    }
+	    att_display(v);
 	    if (do_toggle_att) {
 		send("RA0" + (v ? 0 : 1));
 		do_toggle_att = false;
@@ -456,12 +586,16 @@ function start_streaming() {
 	//   3 PSK D
 	//                1             2          3     4        5   6    7     8     9     10    11
 	//              Freq            RIT freq   RIT   XIT      TX? Mode RxVFO PScan Split Bchg  Data
-	m = s.match(/IF([0-9]{11})     ([+-]\d{4})([01])([01]) 00([01])(.)([01])([01])([01])([01])([01])1* /);
+	m = s.match(/IF([0-9]{11})     ([+-]\d{4})([01])([01]) 00([01])(.)([01])([01])([01])([01])([0-3])1* /);
 	if (m) {
-	    console.log(s);
-	    document.getElementById("mode").innerText = modemap[m[6]];
-	    document.getElementById("fa").value = format_frequency(m[1]);
+	    //console.log(s);
+	    update_text_element("mode", modemap[m[6]]);
+	    update_element("fa", format_frequency(m[1]));
+	    update_text_element("rit-ofs", m[2]);
+	    recolor("rit-enable", m[3] == "1");
+	    recolor("xit-enable", m[4] == "1");
 	    tq(m[5]);
+	    recolor("split-enable", m[9] == "1");
 	    return;
 	}
 	console.log("Unhandled message: " + s);
