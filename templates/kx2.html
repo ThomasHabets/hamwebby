@@ -100,13 +100,13 @@
 	    <tr>
 	      <td>AF Gain</td>
               <td><input id="ag" class="gain-field" value="---"></td>
-	      <td>dB</db>
-	    </tr><tr>
-	      <td>Mon</td>
+	      <td>dB</td>
+            </tr><tr>
+              <td>Mon</td>
 	      <td><input id="ml" class="gain-field" value="---"></td>
 	    </tr>
 	  </table>
-          <button onclick="send('SWH32')">NB</button>
+          <button id="nb-button">NB</button>
         </td>
         <td rowspan="2" colspan="2">
 	  <table class="noborder">
@@ -124,13 +124,26 @@
 	      <td>W</td>
 	    </tr>
 	  </table>
-          <button onclick="send('SWT34')">Spot</button>
+          <button id="spot-button">Spot</button>
         </td>
         <td>
-          <button onclick="send('SWT26')">Data</button>
-          <button onclick="send('SWH26')">Text</button>
+          <button id="data-button">Data</button>
+          <button id="text-button">Text</button>
         </td>
-        <td rowspan="3">Main dial</td>
+        <td rowspan="3">
+	  Main dial
+	  <table>
+	    <tr><th>VFO A</th><th>VFO B</th></th>
+            <tr>
+	      <td><button id="up-button">Up</button></td>
+	      <td><button id="upb-button">Up</button></td>
+	    </tr>
+            <tr>
+	      <td><button id="down-button">Down</button></td>
+	      <td><button id="downb-button">Down</button></td>
+	    </tr>
+	  </table>
+	</td>
         <td>
           Mode:
 	  <select id="md">
@@ -143,12 +156,12 @@
 	    <option value="7">CW-REV</option>
 	    <option value="9">DATA-REV</option>
 	  </select>
-          <button onclick="send('SWH08')">RCL</button>
+          <button id="rcl-button">RCL</button>
           <button>SCN</button>
         </td>
         <td rowspan="2" colspan="2">
-          Ofs [B]
-          <button>CLR</button>
+          <button id="ofsb-button">B</button>
+          <button id="clr-button">CLR</button>
         </td>
       </tr>
       <tr>
@@ -172,45 +185,45 @@
 	    <!-- Not supported on KX2: <option value="10">6m (MHz)</option> -->
 	  </select>
 	  <br/>
-          <!-- <button onclick="send('SWT14')">BAND</button> -->
-          <button onclick="send('SWH14')">STORE</button>
+          <!-- <button id="band-button">BAND</button> -->
+          <button id="store-button">STORE</button>
         </td>
       </tr>
       <tr>
         <td>
           <button id="pa-button" onclick="toggle_pa()">PRE</button>
           <button id="att-button" onclick="toggle_att()">ATT</button>
-          <button onclick="send('SWH19')">NR</button>
+          <button id="nr-button">NR</button>
         </td>
         <td>
-          <button onclick="send('SWT27')">FIL</button>
-          <button onclick="send('SWH27')">APF-AN</button>
+          <button id="fil-button">FIL</button>
+          <button id="apf-an-button">APF-AN</button>
         </td>
         <td>
-          <button onclick="send('SWT20')">ATU</button>
-          <button onclick="send('SWH20')">PFn</button>
+          <button id="atu" onclick="send('SWT20')">ATU</button>
+          <button id="pfn-button">PFn</button>
         </td>
         <td>
-          <button onclick="send('SWT16')">XMIT</button>
-          <button onclick="send('SWH16')">TUNE</button>
+          <button id="xmit-button">XMIT</button>
+          <button id="tune-button">TUNE</button>
         </td>
         <td>
-          <button onclick="send('SWT41')">RATE</button>
-          <button onclick="send('SWH41')">FREQ</button>
+          <button id="rate-button">RATE</button>
+          <button id="freq-button">FREQ</button>
           <button id="lk">Lock VFO A</button>
           <button id="lkb">Lock VFO B</button>
         </td>
         <td>
-          <button onclick="send('SWT44')">A/B</button>
-          <button onclick="send('SWH44')">A->B</button>
+          <button id="ab-button">A/B</button>
+          <button id="a-to-b-button">A->B</button>
         </td>
         <td>
-          <button onclick="send('SWT18')">RIT</button>
-          <button onclick="send('SWH18')">SPLIT</button>
+          <button id="rit-button">RIT</button>
+          <button id="split-button">SPLIT</button>
         </td>
         <td>
-          <button onclick="send('SWT09')">DISP</button>
-          <button onclick="send('SWH09')">MENU</button>
+          <button id="disp-button">DISP</button>
+          <button id="menu-button">MENU</button>
         </td>
       </tr>
     </table>

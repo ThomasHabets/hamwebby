@@ -82,6 +82,42 @@ var do_toggle = {};
     });
 });
 
+// Pure buttons.
+[
+    ["ofsb", "SWT35"],
+    ["clr", "SWH35"],
+    ["data", "SWT26"],
+    ["text", "SWH26"],
+    ["spot", "SWT34"],
+    ["store", "SWH14"],
+    ["nr", "SWH19"],
+    ["fil", "SWT27"],
+    ["apf-an", "SWH27"],
+    ["pfn", "SWH20"],
+    ["xmit", "SWT16"],
+    ["tune", "SWH16"],
+    ["rate", "SWT41"],
+    ["freq", "SWH41"],
+    ["ab", "SWT44"],
+    ["a-to-b", "SWH44"],
+    ["rit", "SWT18"],
+    ["split", "SWH18"],
+    ["disp", "SWT09"],
+    ["menu", "SWH09"],
+    ["rcl", "SWH08"],
+    ["nb", "SWH32"],
+    ["up", "UP"],
+    ["down", "DN"],
+    ["upb", "UPB"],
+    ["downb", "DNB"],
+].forEach((item, index) => {
+    let el = item[0];
+    let cmd = item[1];
+    document.getElementById(el+"-button").addEventListener("click", (event) => {
+	send(cmd);
+    });
+});
+
 // Dropdowns
 ["md", "bn"].forEach((item, index) => {
     document.getElementById(item).addEventListener("change", (event) => {
