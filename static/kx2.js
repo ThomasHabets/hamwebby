@@ -685,4 +685,13 @@ function login() {
         console.log(blah);
     });
 }
+
+function start_audio_stream() {
+    let a = new Audio("/stream/audio.ogg");
+    a.onerror = start_audio_stream;
+    a.onended = start_audio_stream;
+    a.onabort = start_audio_stream;
+    a.play();
+}
+
 start_streaming();
