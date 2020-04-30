@@ -133,6 +133,8 @@ var do_toggle = {};
     ["down", "DN"],
     ["upb", "UPB"],
     ["downb", "DNB"],
+    ["is", "IS 9999"],
+    ["bw", "BW0270"],
 ].forEach((item, index) => {
     let el = item[0];
     let cmd = item[1];
@@ -181,6 +183,16 @@ document.getElementById("bw").addEventListener("keyup", (event) => {
     send("BW" + v);
 });
 
+// Filter is also special, since it's a fraction.
+document.getElementById("is").addEventListener("keyup", (event) => {
+    if (event.keyCode != 13) {
+	return;
+    }
+    let v = parseInt(parseFloat(event.target.value)*1000);
+    v = ('00000000000' + v).slice(-4);
+    send("IS " + v);
+});
+
 // 11 digit text entries (frequency fields)
 ["fa", "fb"].forEach((item, index) => {
     document.getElementById(item).addEventListener("keyup", (event) => {
@@ -214,6 +226,8 @@ function periodic_refresh() {
 	    "BG",  // Bar graph
 	    "VX",  // Vox status
 	    "IF",  // Display
+	    "IS",  // Filter center
+	    "BW",  // Filter width
 	];
 	a.forEach((item, index) => {
 	    send(item);
@@ -472,11 +486,20 @@ function start_streaming() {
 	    return;
 	}
 
+	// Filter bandwidth.
 	m = s.match(/[BF]W(\d{2})(\d{2})/);
 	if (m) {
 	    update_element("bw", parseInt(m[1]) + "." + m[2]);
 	    return;
 	}
+
+	// Filter shift.
+	m = s.match(/IS (\d{1})(\d{3})/);
+	if (m) {
+	    update_element("is", parseInt(m[1]) + "." + m[2]);
+	    return;
+	}
+
 
 	m = s.match(/PC(\d{2})(\d)(\d)/);
 	if (m) {
@@ -503,10 +526,6 @@ function start_streaming() {
 	    return;
 	}
 
-	m = s.match(/IS (\d{4})/);
-	if (m) {
-	    return;
-	}
 
 	m = s.match(/TQ(\d)/);
 	if (m) {
