@@ -271,7 +271,8 @@ function start_streaming() {
     ws = new WebSocket("ws://"+window.location.host+"/stream/ui");
     ws.onopen = (evt) => {
         console.log("WS Connected");
-	send("K31"); // Extended commands
+	// Initial initialization.
+	send("K22"); // Extended commands
 	send("ai2"); // Stream updates
 	send("pc"); // Read power
 	send("el1"); // Error logging on.
