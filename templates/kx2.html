@@ -58,6 +58,9 @@
 	width: 8em;
 	font-family: monospace;
     }
+    .dcol1 {
+	width: 6em;
+    }
   </style>
   <body>
     <div id="top">
@@ -79,40 +82,43 @@
         <td colspan="10">
 	  <table id="radio-top">
 	    <tr>
-	      <td><span id="bg-text"></span><progress id="bg" max="60">[Signal]</progress></td>
+	      <td class="dcol1"><span id="bg-text"></span><progress id="bg" max="60">[Signal]</progress></td>
 	      <td rowspan="2"><input class="freq-field" type="text" id="fa" value="[vfo-a]"/></td>
 	      <td rowspan="2" id="ds">[DS]</td>
 	      <td id="ft0">[ft0]</td>
 	      <td id="mode">[mode]</td>
 	    </tr>
 	    <tr>
-	      <td id="ft0">SWR</td>
+	      <td class="dcol1" id="ft0">SWR</td>
 	    </tr>
 	    <tr>
-	      <td id="filter">filter</td>
+	      <td class="dcol1"></td>
 	      <td><input type="text" id="fb" class="freq-field" value="[vfo-b]"/></td>
 	      <td id="db">---</td>
 	      <td id="ft1">ft1</td>
 	    </tr>
+	    <tr>
+	      <td class="dcol1" id="filter">
+		BW: <input id="bw" value="---" class="gain-field"/>
+	      </td>
+	      <td>
+		<button id="vx">VOX</button>
+		<span id="atu-enable">ATU</span>
+		<span id="cwt-enable">CWT</span>
+		<span id="nr-enable">NR</span>
+		<span id="nb-enable">NB</span>
+		<span id="rit-enable">RIT</span>
+		<span id="xit-enable">XIT</span>
+		<span id="split-enable">SPLIT</span>
+		<span id="att-enable">ATT</span>
+		<span id="pre-enable">PRE</span>
+	      </td>
+	      <td>
+		RIT ofs: <span id="rit-ofs"></span>
+	      </td>
+	    </tr>
 	  </table>
         </td>
-      </tr>
-      <tr>
-	<td>
-	  <button id="vx">VOX</button>
-	  <span id="atu-enable">ATU</span>
-	  <span id="cwt-enable">CWT</span>
-	  <span id="nr-enable">NR</span>
-	  <span id="nb-enable">NB</span>
-	  <span id="rit-enable">RIT</span>
-	  <span id="xit-enable">XIT</span>
-	  <span id="split-enable">SPLIT</span>
-	  <span id="att-enable">ATT</span>
-	  <span id="pre-enable">PRE</span>
-	</td>
-	<td>
-	  RIT ofs: <span id="rit-ofs"></span>
-	</td>
       </tr>
       <tr>
         <td rowspan="2" colspan="2">
