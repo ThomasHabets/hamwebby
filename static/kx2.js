@@ -171,6 +171,16 @@ document.getElementById("pc").addEventListener("keyup", (event) => {
     send("PC" + v);
 });
 
+// Filter is also special, since it's a fraction.
+document.getElementById("bw").addEventListener("keyup", (event) => {
+    if (event.keyCode != 13) {
+	return;
+    }
+    let v = parseInt(parseFloat(event.target.value)*100);
+    v = ('00000000000' + v).slice(-4);
+    send("BW" + v);
+});
+
 // 11 digit text entries (frequency fields)
 ["fa", "fb"].forEach((item, index) => {
     document.getElementById(item).addEventListener("keyup", (event) => {
@@ -277,6 +287,7 @@ function start_streaming() {
 	send("pc"); // Read power
 	send("el1"); // Error logging on.
 	send("ml"); // Mon level
+	send("BW"); // Filter bandwidth
 	send("MG"); // Min gain
 	send("ds"); // Display A
 	send("db"); // Dispaly B
@@ -458,6 +469,12 @@ function start_streaming() {
 	m = s.match(/FB(\d{11})/);
 	if (m) {
 	    update_element("fb", format_frequency(m[1]));
+	    return;
+	}
+
+	m = s.match(/[BF]W(\d{2})(\d{2})/);
+	if (m) {
+	    update_element("bw", parseInt(m[1]) + "." + m[2]);
 	    return;
 	}
 
