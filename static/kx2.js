@@ -411,14 +411,13 @@ function start_streaming() {
 	    //  1: NTCH
 	    //  0: MAN NOTCH
 	    let flash = m[3].charCodeAt(0);
-	    if (flash & 64) {
-		console.log("SUB on");
-	    }
+	    recolor("sub-enable", flash & 64);
 	    if (flash & 32) {
 		console.log("RX ANT on");
 	    }
 	    // ATU
 	    document.getElementById("atu").disabled = !(flash & 16);
+	    //console.log(flash);
 	    recolor("atu-enable", flash & 16);
 	    recolor("cwt-enable", flash & 8);
 	    recolor("nr-enable", flash & 4);
@@ -491,9 +490,30 @@ function start_streaming() {
 	}
 
 	// Filter bandwidth.
-	m = s.match(/[BF]W(\d{2})(\d{2})/);
+	m = s.match(/BW(\d{2})(\d{2})/);
 	if (m) {
 	    update_element("bw", parseInt(m[1]) + "." + m[2]);
+	    return;
+	}
+
+	// Redundant FW in K3 format.
+	m = s.match(/FW(\d{2})(\d{2})$/);
+	if (m) {
+	    update_element("bw", parseInt(m[1]) + "." + m[2]);
+	    return;
+	}
+
+	// FW in K2 format including filter number.
+	m = s.match(/FW(\d{4})([1-4])([0-2])/);
+	if (m) {
+	    // filter in hz, n is the filter number, and m is the filter mode.
+	    // FL1 light comes from here.
+	    // KX2 only has FL1
+	    recolor("fl1-enable", m[2] == "1");
+	    recolor("fl2-enable", m[2] == "2");
+	    recolor("fl3-enable", m[2] == "3");
+	    recolor("fl4-enable", m[2] == "4");
+	    // update_element("bw", parseInt(m[1]) + "." + m[2]);
 	    return;
 	}
 
@@ -505,13 +525,21 @@ function start_streaming() {
 	}
 
 
-	m = s.match(/PC(\d{2})(\d)(\d)/);
-	if (m) {
-	    update_element("pc", parseInt(m[1]) + "." + m[2]);
-	    // TODO: PA status m[3]
+	if (s.match(/PC\d{3}$/)) {
+	    // Ignore non-extended PC. It doesn't have fractional watts.
+	    console.log(s);
 	    return;
 	}
 
+	// TX Power.
+	m = s.match(/PC(\d{2})(\d)(\d)/);
+	if (m) {
+	    update_element("pc", parseInt(m[1]) + "." + m[2]);
+	    recolor("pa-enable", m[3] == "1");
+	    return;
+	}
+
+	// TX VFO assignment.
 	m = s.match(/FT(\d)/);
 	if (m) {
 	    if (m[1] == "0") {
@@ -524,19 +552,20 @@ function start_streaming() {
 	    return;
 	}
 
+	// RX VFO assignment.
 	m = s.match(/FR(\d)/);
 	if (m) {
-	    // TODO: RX VFO assignment
 	    return;
 	}
 
-
+	// Transmitting.
 	m = s.match(/TQ(\d)/);
 	if (m) {
 	    tq(m[1]);
 	    return;
 	}
 
+	// Send CW.
 	m = s.match(/KY(\d)/);
 	if (m) {
 	    if (m[1] == "1") {
@@ -547,12 +576,14 @@ function start_streaming() {
 	    return;
 	}
 
+	// CW Key speed
 	m = s.match(/KS(\d+)/);
 	if (m) {
 	    update_element("ks", parseInt(m[1]));
 	    return;
 	}
 
+	// PreAmp
 	m = s.match(/PA(\d)/);
 	if (m) {
 	    let v = parseInt(m[1]);
@@ -564,6 +595,7 @@ function start_streaming() {
 	    return;
 	}
 
+	// ATT
 	m = s.match(/RA0(\d)/);
 	if (m) {
 	    let v = parseInt(m[1]);
@@ -597,7 +629,8 @@ function start_streaming() {
 	if (handled) {
 	    return;
 	}
-	
+
+	// VOX
 	m = s.match(/VX(\d)/);
 	if (m) {
 	    let v = parseInt(m[1]);
@@ -630,16 +663,30 @@ function start_streaming() {
 	m = s.match(/IF([0-9]{11})     ([+-]\d{4})([01])([01]) 00([01])(.)([01])([01])([01])([01])([0-3])1* /);
 	if (m) {
 	    //console.log(s);
-	    update_text_element("mode", modemap[m[6]]);
 	    update_element("fa", format_frequency(m[1]));
 	    update_text_element("rit-ofs", m[2]);
 	    recolor("rit-enable", m[3] == "1");
 	    recolor("xit-enable", m[4] == "1");
 	    tq(m[5]);
+	    update_text_element("mode", modemap[m[6]]);
+	    // TODO: 7,8
 	    recolor("split-enable", m[9] == "1");
+	    // TODO: 10,11
 	    return;
 	}
-	console.log("Unhandled message: " + s);
+
+	// Extended mode change responses.
+	if (s.match(/K[23][012]/)) {
+	    return;
+	}
+
+	// RF input gain.
+	if (s.match(/RG\d{3}/)) {
+	    // TODO: display somewhere?
+	    return;
+	}
+
+	console.log("Unhandled message: " + s + " length " + s.length);
     };
     blink();
 }
