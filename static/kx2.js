@@ -228,6 +228,8 @@ function periodic_refresh() {
 	    "IF",  // Display
 	    "IS",  // Filter center
 	    "BW",  // Filter width
+	    "K30;FW;K31",  // Filter width & number
+	    "PC",  // Power
 	];
 	a.forEach((item, index) => {
 	    send(item);
@@ -297,9 +299,11 @@ function start_streaming() {
         console.log("WS Connected");
 	// Initial initialization.
 	send("K22"); // Extended commands
+	send("K31"); // Extended commands
 	send("ai2"); // Stream updates
-	send("pc"); // Read power
+	send("PC"); // Read power
 	send("el1"); // Error logging on.
+	send("fw"); // Filter status.
 	send("ml"); // Mon level
 	send("BW"); // Filter bandwidth
 	send("MG"); // Min gain
