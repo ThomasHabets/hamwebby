@@ -22,6 +22,7 @@ import (
 var (
 	speed = flag.Int("speed", 38400, "Serial port speed")
 	dev   = flag.String("dev", "/dev/ttyUSB0", "Serial port")
+	debug = flag.Bool("debug", false, "Enable debug output")
 
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -179,6 +180,10 @@ func (p *Port) Run(ctx context.Context) {
 
 func main() {
 	flag.Parse()
+	if *debug {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	ctx := context.Background()
 	log.Printf("Opening serial port...")
 	f, err := os.OpenFile(*dev, os.O_RDWR|os.O_SYNC, 0)
