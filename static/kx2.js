@@ -26,8 +26,8 @@ function blink() {
         setTimeout(() => {
             //console.log("blink off");
             blink();
-        }, 100);
-    }, 1000);
+        }, 1000);
+    }, 100);
 }
 
 function tq(s) {
@@ -233,7 +233,7 @@ function periodic_refresh() {
 	    send(item);
 	});
 	periodic_refresh();
-    }, 100);
+    }, 1000);
 }
 
 function att_display(v) {
