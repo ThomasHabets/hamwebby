@@ -109,6 +109,10 @@ func uiStream(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
+		if len(p) == 0 {
+			log.Warningf("Got empty message from websocket")
+			continue
+		}
 		log.Debugf("Got message %v %v", messageType, string(p))
 		// TODO: check that messageType is websocket.TextMessage
 		if _, err := port.f.Write([]byte(fmt.Sprintf("%s;", string(p)))); err != nil {
@@ -157,10 +161,14 @@ func (p *Port) Run(ctx context.Context) {
 		s := string(b[:n])
 		if s == ";" {
 			log.Debugf("From serial: %q", ss)
-			select {
-			case p.msgs <- []byte(ss):
-			default:
-				log.Infof("Dropped message on the floor")
+			if len(ss) == 0 {
+				log.Warningf("Got message of length 0 from serial")
+			} else {
+				select {
+				case p.msgs <- []byte(ss):
+				default:
+					log.Infof("Dropped message on the floor")
+				}
 			}
 			ss = ""
 		} else {
