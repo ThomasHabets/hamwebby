@@ -151,7 +151,7 @@ var do_toggle = {};
 });
 
 // 3 digit text entries
-["ag", "mg", "ks", "ml"].forEach((item, index) => {
+["ag", "mg", "ks", "ml", "cp"].forEach((item, index) => {
     document.getElementById(item).addEventListener("keyup", (event) => {
 	if (event.keyCode != 13) {
 	    return;
@@ -229,6 +229,7 @@ function periodic_refresh() {
 	    "IS",  // Filter center
 	    "BW",  // Filter width
 	    "K30;FW;K31",  // Filter width & number
+	    "CP", // Speech compression
 	    "PC",  // Power
 	];
 	a.forEach((item, index) => {
@@ -369,6 +370,13 @@ function start_streaming() {
 	m = s.match(/MG(\d{3})[$]?/);
 	if (m) {
 	    update_element("mg", parseInt(m[1]));
+	    return;
+	}
+
+	// Mic gain
+	m = s.match(/CP(\d{3})$/);
+	if (m) {
+	    update_element("cp", parseInt(m[1]));
 	    return;
 	}
 
