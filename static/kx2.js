@@ -421,7 +421,7 @@ function start_streaming() {
 	    recolor("atu-enable", flash & 16);
 	    recolor("cwt-enable", flash & 8);
 	    recolor("nr-enable", flash & 4);
-	    //recolor("ntch-enable", flash & 2);
+	    recolor("ntch-enable", flash & 2);
 	    //recolor("mon-notch-enable", flash & 1);
 	    
 	    let out = "";

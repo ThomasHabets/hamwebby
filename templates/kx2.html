@@ -102,10 +102,17 @@
 	    </tr>
 	    <tr>
 	      <td class="dcol1" id="filter">
-		BW: <input id="bw" value="---" class="gain-field"/>
-		FC: <input id="is" value="---" class="gain-field"/>
-		<button id="bw-button">Def width</button>
-		<button id="is-button">Center</button>
+		<table>
+		  <tr>
+		    <td colspan="3"><span id="ntch-enable">NTCH</span></td>
+		  </tr><tr>
+		    <td>BW</td><td><input id="bw" value="---" class="gain-field"/></td>
+		    <td><button id="bw-button">Def width</button></td>
+		  </tr><tr>
+		    <td>FC</td><td><input id="is" value="---" class="gain-field"/></td>
+		    <td><button id="is-button">Center</button></td>
+		  </tr>
+		</table>
 	      </td>
 	      <td>
 		<button id="vx">VOX</button>
