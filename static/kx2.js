@@ -42,7 +42,7 @@ function tq(s) {
 
 function update_element(el, val) {
     let o = document.getElementById(el);
-    if (o.value == val) {
+    if ((o.value === val) && (o.value !== 0)) {
 	return;
     }
     if (document.activeElement == o) {
