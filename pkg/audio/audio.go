@@ -88,10 +88,29 @@ func (a *Audio) Run(ctx context.Context) {
 	}()
 }
 
-func (a *Audio) AddReader() *Reader {
+func (a *Audio) AddReader(samples int) *Reader {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	ch := make(chan []byte)
+	chunk := 0
+	ofs := 0
+	seen := 0
+	if samples > 0 {
+		for i := len(a.queue) - 1; i >= 0; i-- {
+			chunk++
+			seen += len(a.queue[i])
+			if seen >= samples {
+				ofs = seen - samples
+				break
+			}
+		}
+	}
+	ch := make(chan []byte, chunk+1)
+	for i := len(a.queue) - chunk; i < len(a.queue); i++ {
+		part := a.queue[i][ofs:]
+		log.Infof("Pre-sending %d bytes", len(part))
+		ch <- part
+		ofs = 0
+	}
 	a.id++
 	a.readers[a.id] = ch
 	return &Reader{

@@ -782,41 +782,12 @@ function login() {
     });
 }
 
+var player = null;
 function start_audio_stream() {
-    if (false) {
-	let a = new Audio("/stream/audio.ogg");
-	a.onerror = start_audio_stream;
-	a.onended = start_audio_stream;
-	a.onabort = start_audio_stream;
-	a.play();
-	return;
-    }
     let ctx = new AudioContext();
     let channels = 1;
     let rate = 44100;
     let length = 44100;
-
-    // Test play some noise.
-    if (false) {
-	let buf = ctx.createBuffer(channels, ctx.sampleRate, ctx.sampleRate);
-	// Make some noooooise!
-	for (var channel = 0; channel < buf.numberOfChannels; channel++) {
-	    var t = buf.getChannelData(channel);
-	    for (var i = 0; i < buf.length; i++) {
-		t[i] = 2*Math.random() - 1;
-	    }
-	}
-	var player = ctx.createBufferSource();
-	player.buffer = buf;
-	player.connect(ctx.destination);
-
-	// Start playback.
-	player.start();
-	return;
-    }
-
-    // Copy from a Float32Array to channel 0, offset 0
-    // buf.copyToChannel(src, 0, 0)
 
     let wsa = new WebSocket("ws://"+window.location.host+"/stream/audio")
     wsa.onopen = (evt) => {
@@ -837,21 +808,43 @@ function start_audio_stream() {
 	//console.log(evt);
 	evt.data.arrayBuffer().then(buffer => {
 	    //console.log(buffer);
-	    let view = new Int16Array(buffer);
 
+	    // Convert the data to an audio buffer and put it on the stack.
+	    let view = new Int16Array(buffer);
 	    let buf = ctx.createBuffer(channels, view.length, ctx.sampleRate);
-	    var t = buf.getChannelData(0);
+	    let t = buf.getChannelData(0);
 	    for (var i = 0; i < view.length; i++) {
 		t[i] = view[i] / 32768;
 	    }
-	    var player = ctx.createBufferSource();
-	    player.buffer = buf;
-	    player.connect(ctx.destination);
-            // TODO: connect an FFT:
-	    // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode
+	    audio_chunks.push(buf);
 
-	    // Start playback.
-	    player.start();
+	    // Define how to start playing.
+	    // This is actually not working that great. I still hear audio glitches.
+	    let start_playing = () => {
+		let buf = audio_chunks.shift();
+		if (buf === undefined) {
+		    //console.log("No more audio to play. Killing player.");
+		    player = null;
+		    return;
+		}
+		player = ctx.createBufferSource();
+		player.buffer = buf;
+		player.connect(ctx.destination);
+		player.start();
+		player.onended = () => {
+		    //console.log("Ended");
+		    start_playing();
+		};
+	    };
+	    // Start first player.
+	    if (player == null) {
+		//console.log("Player starting...");
+		start_playing();
+		player.start();
+		//console.log(player);
+	    }
+	    // TODO: connect an FFT:
+	    // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode
 	});
     };
 }

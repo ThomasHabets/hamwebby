@@ -60,7 +60,7 @@ func audioStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rd := au.AddReader()
+	rd := au.AddReader(44100)
 	defer rd.Close()
 
 	log.Infof("Audio stream running...")
