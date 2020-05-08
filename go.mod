@@ -1,4 +1,4 @@
-module github.com/ThomasHabets/kx2ui
+module github.com/ThomasHabets/hamwebby
 
 go 1.12
 

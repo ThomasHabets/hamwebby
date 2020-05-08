@@ -26,6 +26,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/ThomasHabets/hamwebby/pkg/audio"
 )
 
 var (
@@ -40,6 +42,7 @@ var (
 	}
 
 	port *Port
+	au   *audio.Audio
 )
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -49,6 +52,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Handler for streaming down audio using websockets.
 func audioStream(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -56,54 +60,29 @@ func audioStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ch := readAudio(r.Context())
+	rd := au.AddReader()
+	defer rd.Close()
 
 	log.Infof("Audio stream running...")
 	for {
-		data := <-ch
+		data, err := rd.Get()
+		if err != nil {
+			log.Errorf("Failed to get audio data from card: %v", err)
+			return
+		}
+		if len(data) == 0 {
+			log.Errorf("Got 0 bytes from audio reader. That shouldn't happen")
+			continue
+		}
+		log.Debugf("Got %d bytes of audio data", len(data))
 		if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
 			log.Warningf("Failed to write audio message to client: %v", err)
 			return
 		}
-		log.Infof("Send audio packet")
 	}
 }
 
-func readAudio(ctx context.Context) <-chan []byte {
-	ch := make(chan []byte)
-	go func() {
-		cmd := exec.CommandContext(ctx, "arecord", "-c", "1", "-D", "hw:1", "-f", "S16_LE", "-r", "44100", "-")
-		cmd.Env = []string{
-			"AUDIODEV=hw:1",
-		}
-		pipeReader, pipeWriter := io.Pipe()
-		cmd.Stdout = pipeWriter
-		cmd.Stderr = os.Stderr
-		log.Printf("Streaming audio...")
-		go func() {
-			for {
-				data := make([]byte, 44100)
-				n, err := pipeReader.Read(data)
-				if err != nil {
-					log.Errorf("Reading from sound card: %v", err)
-					return
-				}
-				log.Infof("Got %d bytes", n)
-				select {
-				case ch <- data[0:n]:
-				default:
-					log.Infof("dropped data")
-				}
-			}
-		}()
-		if err := cmd.Run(); err != nil {
-			log.Errorf("Failed to stream from audio dev: %v", err)
-		}
-		log.Printf("audio stream ended")
-	}()
-	return ch
-}
-
+// uiStream is the HTTP handler for streaming commands and responses for the serial interface.
 func uiStream(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -154,6 +133,7 @@ func uiStream(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// command sends a command to the serial port, and returns the response.
 func command(f io.ReadWriter, cmd string, reply bool) (string, error) {
 	if _, err := f.Write([]byte(cmd)); err != nil {
 		return "", err
@@ -176,6 +156,7 @@ func command(f io.ReadWriter, cmd string, reply bool) (string, error) {
 	}
 }
 
+// Port is a serial port wrapper.
 type Port struct {
 	m    sync.Mutex
 	msgs chan []byte
@@ -212,11 +193,20 @@ func (p *Port) Run(ctx context.Context) {
 
 func main() {
 	flag.Parse()
+	if flag.NArg() > 0 {
+		log.Fatalf("Stray command args: %q", flag.Args())
+	}
+
 	if *debug {
 		log.SetLevel(log.DebugLevel)
 	}
 
 	ctx := context.Background()
+
+	log.Infof("Opening audio...")
+	au = audio.New(*dev)
+	au.Run(ctx)
+
 	log.Printf("Opening serial port...")
 	f, err := os.OpenFile(*dev, os.O_RDWR|os.O_SYNC, 0)
 	if err != nil {
