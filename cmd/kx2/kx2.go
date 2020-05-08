@@ -14,15 +14,25 @@ import (
 	"sync"
 	"time"
 
+	// None of these worked.
+	// Portaudio can't find the audio card.
+	// The alsa ones don't even compile.
+	//
+	//"github.com/gordonklaus/portaudio"
+	//"github.com/HardWareGuy/portaudio-go"
+	//alsa "github.com/Narsil/alsa-go"
+	//"github.com/cocoonlife/goalsa"
+
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	speed = flag.Int("speed", 38400, "Serial port speed")
-	dev   = flag.String("dev", "/dev/ttyUSB0", "Serial port")
-	debug = flag.Bool("debug", false, "Enable debug output")
+	speed    = flag.Int("speed", 38400, "Serial port speed")
+	audioDev = flag.String("audio", "hw:1,0", "Audio input from radio.")
+	dev      = flag.String("dev", "/dev/ttyUSB0", "Serial port")
+	debug    = flag.Bool("debug", false, "Enable debug output")
 
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -40,36 +50,58 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func audioStream(w http.ResponseWriter, r *http.Request) {
-	/*
-		conn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			log.Errorf("Establishing audio stream websocket: %v", err)
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Errorf("Establishing audio stream websocket: %v", err)
+		return
+	}
+
+	ch := readAudio(r.Context())
+
+	log.Infof("Audio stream running...")
+	for {
+		data := <-ch
+		if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
+			log.Warningf("Failed to write audio message to client: %v", err)
 			return
 		}
-
-		log.Infof("Audio stream running...")
-	*/
+		log.Infof("Send audio packet")
+	}
 }
 
-func audioStreamOgg(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Connection", "Keep-Alive")
-	w.Header().Set("Transfer-Encoding", "chunked")
-	w.Header().Set("Content-Type", "audio/wav")
-
-	//cmd := exec.CommandContext(r.Context(), "rec", "-c", "1", "-b", "16", "-t","ogg","-")
-	cmd := exec.CommandContext(r.Context(), "arecord", "-D", "hw:1", "-f", "S16_LE", "-r", "44100", "-")
-	cmd.Env = []string{
-		"AUDIODEV=hw:1",
-	}
-	pipeReader, pipeWriter := io.Pipe()
-	cmd.Stdout = pipeWriter
-	cmd.Stderr = os.Stderr
-	log.Printf("Streaming audio...")
-	go io.Copy(w, pipeReader)
-	if err := cmd.Run(); err != nil {
-		log.Errorf("Failed to stream from audio dev: %v", err)
-	}
-	log.Printf("audio stream ended")
+func readAudio(ctx context.Context) <-chan []byte {
+	ch := make(chan []byte)
+	go func() {
+		cmd := exec.CommandContext(ctx, "arecord", "-c", "1", "-D", "hw:1", "-f", "S16_LE", "-r", "44100", "-")
+		cmd.Env = []string{
+			"AUDIODEV=hw:1",
+		}
+		pipeReader, pipeWriter := io.Pipe()
+		cmd.Stdout = pipeWriter
+		cmd.Stderr = os.Stderr
+		log.Printf("Streaming audio...")
+		go func() {
+			for {
+				data := make([]byte, 44100)
+				n, err := pipeReader.Read(data)
+				if err != nil {
+					log.Errorf("Reading from sound card: %v", err)
+					return
+				}
+				log.Infof("Got %d bytes", n)
+				select {
+				case ch <- data[0:n]:
+				default:
+					log.Infof("dropped data")
+				}
+			}
+		}()
+		if err := cmd.Run(); err != nil {
+			log.Errorf("Failed to stream from audio dev: %v", err)
+		}
+		log.Printf("audio stream ended")
+	}()
+	return ch
 }
 
 func uiStream(w http.ResponseWriter, r *http.Request) {
@@ -245,7 +277,6 @@ func main() {
 	r.HandleFunc("/", rootHandler)
 	r.HandleFunc("/stream/ui", uiStream)
 	r.HandleFunc("/stream/audio", audioStream)
-	r.HandleFunc("/stream/audio.ogg", audioStreamOgg)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	log.Printf("Starting...")
