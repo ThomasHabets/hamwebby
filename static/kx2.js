@@ -135,6 +135,8 @@ var do_toggle = {};
     ["downb", "DNB"],
     ["is", "IS 9999"],
     ["bw", "BW0270"],
+    ["atu-off", "MN023;MP001;MN255"],
+    ["atu-on", "MN023;MP002;MN255"],
 ].forEach((item, index) => {
     let el = item[0];
     let cmd = item[1];
