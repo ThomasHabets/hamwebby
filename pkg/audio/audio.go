@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"container/list"
 	"context"
 	"io"
 	"os"
@@ -14,10 +15,38 @@ const (
 	DefaultLimit = 44100 * 10 // 10 seconds, or about half a MB
 )
 
+type byteQueue struct {
+	list *list.List
+}
+
+func (q *byteQueue) len() int64 {
+	return int64(q.list.Len())
+}
+
+func (q *byteQueue) front() []byte {
+	return q.list.Front().Value.([]byte)
+}
+
+func (q *byteQueue) pop() {
+	q.list.Remove(q.list.Front())
+}
+
+func (q *byteQueue) push(bs []byte) {
+	q.list.PushBack(bs)
+}
+
+func (q *byteQueue) get(index int) []byte {
+	e := q.list.Front()
+	for i := 0; i < index; i++ {
+		e = e.Next()
+	}
+	return e.Value.([]byte)
+}
+
 type Audio struct {
 	mu    sync.Mutex
 	dev   string
-	queue [][]byte
+	queue byteQueue
 	size  int64
 	Limit int64 // Do not write after calling Run().
 
@@ -40,7 +69,10 @@ func New(dev string) *Audio {
 	return &Audio{
 		dev:     dev,
 		readers: make(map[uint64]chan []byte),
-		Limit:   DefaultLimit,
+		queue: byteQueue{
+			list: list.New(),
+		},
+		Limit: DefaultLimit,
 	}
 }
 
@@ -50,9 +82,9 @@ func (a *Audio) trimLock() {
 		return
 	}
 	cut := a.Limit - a.size
-	for cut > int64(len(a.queue[0])) {
-		a.size -= int64(len(a.queue[0]))
-		a.queue = a.queue[1:]
+	for cut > int64(a.queue.len()) {
+		a.size -= int64(len(a.queue.front()))
+		a.queue.pop()
 	}
 	// TODO: bother trimming partial chunks?
 }
@@ -60,7 +92,7 @@ func (a *Audio) trimLock() {
 func (a *Audio) addSamples(samples []byte) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.queue = append(a.queue, samples)
+	a.queue.push(samples)
 	a.size += int64(len(samples))
 	if a.size > a.Limit {
 		a.trimLock()
@@ -95,9 +127,9 @@ func (a *Audio) AddReader(samples int) *Reader {
 	ofs := 0
 	seen := 0
 	if samples > 0 {
-		for i := len(a.queue) - 1; i >= 0; i-- {
+		for i := int(a.queue.len() - 1); i >= 0; i-- {
 			chunk++
-			seen += len(a.queue[i])
+			seen += len(a.queue.get(i))
 			if seen >= samples {
 				ofs = seen - samples
 				break
@@ -105,8 +137,8 @@ func (a *Audio) AddReader(samples int) *Reader {
 		}
 	}
 	ch := make(chan []byte, chunk+1)
-	for i := len(a.queue) - chunk; i < len(a.queue); i++ {
-		part := a.queue[i][ofs:]
+	for i := int(a.queue.len()) - chunk; i < int(a.queue.len()); i++ {
+		part := a.queue.get(i)[ofs:]
 		log.Infof("Pre-sending %d bytes", len(part))
 		ch <- part
 		ofs = 0
